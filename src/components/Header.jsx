@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BarberLogo from '../assets/barber-logo.png';
+// import BarberLogo from '../assets/barber-logo.png'; // <-- HEMOS BORRADO ESTA LÍNEA
 import ThemeToggleButton from './ThemeToggleButton';
 
 function Header() {
   const navigate = useNavigate();
   const [clickCount, setClickCount] = useState(0);
   const [ctrlPressed, setCtrlPressed] = useState(false);
-  // Usaremos una referencia para el temporizador para evitar problemas de renderizado
   const clickTimer = React.useRef(null);
 
   useEffect(() => {
@@ -19,7 +18,6 @@ function Header() {
     const handleKeyUp = (e) => {
       if (e.key === 'Control') {
         setCtrlPressed(false);
-        // Si se suelta la tecla Control, reiniciamos el contador por seguridad
         resetClicks();
       }
     };
@@ -37,8 +35,6 @@ function Header() {
   const handleLogoClick = () => {
     const isMobile = window.innerWidth <= 768;
 
-    // --- CAMBIO CLAVE 1: Condicionar el contador de clics en PC ---
-    // Si estamos en un computador y la tecla Control no está presionada, no hacemos nada.
     if (!isMobile && !ctrlPressed) {
       return; 
     }
@@ -47,8 +43,6 @@ function Header() {
     setClickCount(newClickCount);
     clearTimeout(clickTimer.current);
 
-    // La lógica de navegación se mantiene, pero ahora solo se puede llegar a ella
-    // si se cumplió la condición de arriba en PC.
     if (!isMobile && newClickCount === 3 && ctrlPressed) {
       navigate('/admin/login');
       resetClicks();
@@ -63,7 +57,7 @@ function Header() {
     
     clickTimer.current = setTimeout(() => {
       resetClicks();
-    }, 2000); // El temporizador se reinicia después de 2 segundos de inactividad
+    }, 2000);
   };
 
   const resetClicks = () => {
@@ -71,8 +65,6 @@ function Header() {
     clearTimeout(clickTimer.current);
   };
 
-  // --- CAMBIO CLAVE 2: La animación de escala ahora es dinámica ---
-  // Las clases de la animación solo se aplican si `ctrlPressed` es verdadero.
   const logoAnimationClass = ctrlPressed ? 'hover:scale-110' : '';
 
   return (
@@ -81,9 +73,8 @@ function Header() {
         <ThemeToggleButton />
       </div>
       <img 
-        src={BarberLogo}
+        src="/barber-logo.png" // <-- EL ÚNICO CAMBIO IMPORTANTE ESTÁ AQUÍ
         alt="Barber Studio Logo"
-        // La clase de animación se añade o quita dinámicamente
         className={`mx-auto h-16 sm:h-20 w-auto cursor-pointer transition-transform duration-300 ${logoAnimationClass}`}
         onClick={handleLogoClick}
       />
