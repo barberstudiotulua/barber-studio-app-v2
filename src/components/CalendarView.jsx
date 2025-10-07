@@ -3,43 +3,45 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { supabase } from '../../supabaseClient';
 import Spinner from './Spinner';
+import toast from 'react-hot-toast'; // Importamos toast para notificaciones
 
 function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAvailableSlots = useCallback(async (selectedDate) => {
-    if (!totalServiceDuration || totalServiceDuration === 0) {
-      setAvailableSlots([]);
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
-    // --- NUEVA LLAMADA A LA FUNCIÓN DEFINITIVA ---
-    // Ahora solo necesita la fecha y la duración total. Es más inteligente.
-    const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
-      p_selected_date: selectedDateStr,
-      p_service_duration_mins: totalServiceDuration
-    });
-
-    if (error) {
-      console.error('Error fetching slots:', error.message);
-      toast.error("Hubo un problema al buscar horarios. Intenta de nuevo.");
-      setAvailableSlots([]);
-    } else {
-      setAvailableSlots(slots || []);
-    }
-    setLoading(false);
-  }, [totalServiceDuration]);
-
+  // Hemos hecho este cambio para que la búsqueda de horarios se active
+  // CADA VEZ que cambie la duración total del servicio (ej: al cambiar de 1 a 2 personas).
   useEffect(() => {
-    fetchAvailableSlots(date);
-  }, [date, fetchAvailableSlots]);
+    async function fetchAvailableSlots() {
+      if (!totalServiceDuration || totalServiceDuration === 0) {
+        setAvailableSlots([]);
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+
+      const selectedDateStr = date.toISOString().split('T')[0];
+
+      // Llamamos a la nueva y mejorada función en Supabase
+      const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
+        p_selected_date: selectedDateStr,
+        p_service_duration_mins: totalServiceDuration
+      });
+
+      if (error) {
+        console.error('Error fetching slots:', error.message);
+        toast.error("Hubo un problema al buscar horarios. Intenta de nuevo.");
+        setAvailableSlots([]);
+      } else {
+        setAvailableSlots(slots || []);
+      }
+      setLoading(false);
+    }
+
+    fetchAvailableSlots();
+  }, [date, totalServiceDuration]); // LA MAGIA ESTÁ AQUÍ: ahora depende de 'totalServiceDuration'
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
