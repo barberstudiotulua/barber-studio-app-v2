@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-light-primary text-text-dark font-sans antialiased transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-dark-primary text-text-light;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
+  /* Scrollbar más sutil */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-200;
+  }
+  .dark ::-webkit-scrollbar-track {
+    @apply bg-dark-secondary;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded-md;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-brand-gold;
+  }
+
+  /* Clases de componentes reutilizables */
+  .btn-primary {
+    @apply w-full text-dark-primary bg-brand-gold hover:opacity-90 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-bold rounded-lg text-lg px-5 py-3 text-center disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105;
+  }
+  .btn-secondary {
+    @apply bg-gray-200 text-text-dark hover:bg-gray-300 py-2 px-4 rounded font-bold transition-colors;
+  }
+  .dark .btn-secondary {
+    @apply bg-gray-700 text-text-light hover:bg-gray-600;
+  }
+  .input-primary {
+    @apply bg-light-secondary border-2 border-gray-300 text-text-dark rounded-lg focus:ring-brand-gold focus:border-brand-gold block w-full p-2.5 transition-colors duration-200;
+  }
+  .dark .input-primary {
+    @apply bg-dark-secondary border-gray-600 text-text-light;
+  }
+  .card-bg {
+    @apply bg-light-secondary border border-gray-200 transition-colors duration-300;
+  }
+  .dark .card-bg {
+    @apply bg-dark-secondary border-gray-700;
+  }
+  
+  .tab-button {
+    @apply px-4 py-2 font-semibold text-text-soft dark:text-text-medium hover:text-text-dark dark:hover:text-text-light whitespace-nowrap transition-colors;
+  }
+  .tab-button-active {
+    @apply px-4 py-2 font-semibold border-b-2 border-brand-gold text-brand-gold whitespace-nowrap;
+  }
+}
+
+/* --- ESTILOS MEJORADOS PARA REACT-CALENDAR --- */
+
+/* Contenedor principal del calendario */
+.react-calendar {
+  @apply !w-full !border-2 !p-2 md:!p-4 !rounded-lg !font-sans !shadow-xl !bg-light-secondary !border-gray-200;
+}
+.dark .react-calendar {
+  @apply !bg-dark-secondary !border-gray-700;
+}
+
+/* Botones de navegación (mes/año) */
+.react-calendar__navigation button {
+  @apply !text-text-dark !font-bold !text-base md:!text-lg !rounded-md;
+}
+.dark .react-calendar__navigation button {
+  @apply !text-text-light;
+}
+.react-calendar__navigation button:hover,
+.react-calendar__navigation button:focus {
+  @apply !bg-gray-100;
+}
+.dark .react-calendar__navigation button:hover,
+.dark .react-calendar__navigation button:focus {
+  @apply !bg-gray-700;
+}
+
+/* Días de la semana (L, M, M, etc.) */
+.react-calendar__month-view__weekdays__weekday {
+  @apply !text-brand-gold !no-underline !font-bold !uppercase !text-xs;
+}
+.react-calendar__month-view__weekdays__weekday abbr[title] {
+    @apply !no-underline;
+}
+
+/* Cada "cuadro" o día del mes */
+.react-calendar__tile {
+  @apply !text-text-dark !bg-transparent !border-2 !border-transparent !rounded-md transition-all duration-200 !p-1 md:!p-2;
+}
+.dark .react-calendar__tile {
+  @apply !text-text-light;
+}
+
+/* Días deshabilitados */
+.react-calendar__tile:disabled {
+  @apply !text-gray-400 !bg-transparent !cursor-not-allowed;
+}
+.dark .react-calendar__tile:disabled {
+  @apply !text-gray-600 !bg-dark-secondary;
+}
+
+/* Hover y focus sobre días habilitados */
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  @apply !bg-gray-100;
+}
+.dark .react-calendar__tile:enabled:hover,
+.dark .react-calendar__tile:enabled:focus {
+  @apply !bg-gray-700;
+}
+
+/* Estilo para el día de hoy */
+.react-calendar__tile--now {
+  @apply !bg-transparent !border-brand-gold;
+}
+
+/* Estilo para el día seleccionado */
+.react-calendar__tile--active {
+  @apply !bg-brand-gold !text-dark-primary !font-bold;
+}
