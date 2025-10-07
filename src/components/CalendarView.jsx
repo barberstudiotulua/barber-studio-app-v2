@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { supabase } from '../../supabaseClient';
+// ESTA ES LA LÍNEA QUE HEMOS CORREGIDO
+import { supabase } from '../supabaseClient'; 
 import Spinner from './Spinner';
-import toast from 'react-hot-toast'; // Importamos toast para notificaciones
+import toast from 'react-hot-toast';
 
 function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Hemos hecho este cambio para que la búsqueda de horarios se active
-  // CADA VEZ que cambie la duración total del servicio (ej: al cambiar de 1 a 2 personas).
+  // Esta función se activa cuando cambia la fecha o la duración total del servicio
   useEffect(() => {
     async function fetchAvailableSlots() {
       if (!totalServiceDuration || totalServiceDuration === 0) {
@@ -24,7 +24,7 @@ function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) 
 
       const selectedDateStr = date.toISOString().split('T')[0];
 
-      // Llamamos a la nueva y mejorada función en Supabase
+      // Llamamos a la función inteligente en Supabase
       const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
         p_selected_date: selectedDateStr,
         p_service_duration_mins: totalServiceDuration
@@ -41,7 +41,7 @@ function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) 
     }
 
     fetchAvailableSlots();
-  }, [date, totalServiceDuration]); // LA MAGIA ESTÁ AQUÍ: ahora depende de 'totalServiceDuration'
+  }, [date, totalServiceDuration]); 
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
