@@ -5,26 +5,26 @@ import { supabase } from '../supabaseClient';
 import Spinner from './Spinner';
 import toast from 'react-hot-toast';
 
-// NOTA: Ahora el componente solo necesita saber el NÚMERO DE PERSONAS.
 function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [slotDuration, setSlotDuration] = useState(60); // Guardamos la duración aquí también
-
-  // Esta función es la que busca los horarios. Se activa si cambia el día O el número de personas.
+  
   const fetchAndFilterSlots = useCallback(async (selectedDate, peopleCount) => {
     setLoading(true);
 
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
 
-    // 1. Primero, obtenemos la duración de la cita que TÚ configuraste en el panel de admin.
+    // 1. Obtenemos la duración de la cita que TÚ configuraste en el panel.
     const { data: setting, error: settingError } = await supabase.from('settings').select('value').eq('key', 'slot_interval_minutes').single();
+    if (settingError) {
+      toast.error("No se pudo leer la duración de la cita.");
+      setLoading(false);
+      return;
+    }
     const currentDuration = setting ? parseInt(setting.value, 10) : 60;
-    if(settingError) toast.error("No se pudo leer la duración de la cita.");
-    setSlotDuration(currentDuration);
-
-    // 2. Pedimos a la base de datos TODOS los bloques individuales disponibles para ese día.
+    
+    // 2. Pedimos a la base de datos TODOS los bloques individuales disponibles.
     const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
       p_selected_date: selectedDateStr
     });
@@ -33,30 +33,28 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
       toast.error("Hubo un problema al buscar horarios.");
       setAvailableSlots([]);
     } else {
-        // 3. LA LÓGICA MÁGICA: Filtramos los bloques si se necesita más de uno.
+        // 3. Filtramos los bloques si se necesita más de uno.
         if (peopleCount > 1 && slots && slots.length > 0) {
             const filteredSlots = [];
-            // Recorremos la lista de bloques...
             for (let i = 0; i <= slots.length - peopleCount; i++) {
                 let isBlockContinuous = true;
                 const firstSlotTime = new Date(slots[i].available_slot).getTime();
-                // ...y para cada bloque, verificamos si los siguientes X bloques son continuos.
                 for (let j = 1; j < peopleCount; j++) {
                     const nextSlotTime = new Date(slots[i + j].available_slot).getTime();
-                    // Un bloque es continuo si empieza EXACTAMENTE donde debería (ej: 60 minutos después, 120, etc).
+                    
+                    // === ESTA ES LA LÍNEA QUE CORREGÍ ===
+                    // Antes decía "60 * 60 * 1000", ahora usa la duración correcta de tu panel.
                     if (nextSlotTime - firstSlotTime !== (currentDuration * 60 * 1000 * j)) {
                         isBlockContinuous = false;
                         break;
                     }
                 }
-                // Si encontramos un bloque de N citas seguidas, guardamos solo la primera hora.
                 if (isBlockContinuous) {
                     filteredSlots.push(slots[i]);
                 }
             }
             setAvailableSlots(filteredSlots);
         } else {
-            // Si es solo para una persona, mostramos todos los bloques disponibles.
             setAvailableSlots(slots || []);
         }
     }
