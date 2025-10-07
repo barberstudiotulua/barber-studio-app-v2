@@ -4,14 +4,12 @@ import 'react-calendar/dist/Calendar.css';
 import { supabase } from '../../supabaseClient';
 import Spinner from './Spinner';
 
-function CalendarView({ totalServiceDuration, slotInterval, onSlotSelect, selectedTimeSlot }) {
+function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Usamos useCallback para que la función no se recree en cada renderizado
   const fetchAvailableSlots = useCallback(async (selectedDate) => {
-    // Si no hay duración de servicio, no hay nada que buscar.
     if (!totalServiceDuration || totalServiceDuration === 0) {
       setAvailableSlots([]);
       setLoading(false);
@@ -22,30 +20,31 @@ function CalendarView({ totalServiceDuration, slotInterval, onSlotSelect, select
 
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
 
-    // --- CAMBIO CLAVE ---
-    // Ahora llamamos a nuestra nueva función inteligente: 'get_slots_for_duration'
-    // Le pasamos la fecha, la duración TOTAL de la cita y el intervalo.
-    const { data: slots, error } = await supabase.rpc('get_slots_for_duration', {
+    // --- NUEVA LLAMADA A LA FUNCIÓN DEFINITIVA ---
+    // Ahora solo necesita la fecha y la duración total. Es más inteligente.
+    const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
       p_selected_date: selectedDateStr,
-      p_service_duration_mins: totalServiceDuration,
-      p_slot_interval_mins: slotInterval
+      p_service_duration_mins: totalServiceDuration
     });
 
     if (error) {
       console.error('Error fetching slots:', error.message);
+      toast.error("Hubo un problema al buscar horarios. Intenta de nuevo.");
       setAvailableSlots([]);
     } else {
-      // Como la base de datos ya hizo todo el trabajo difícil,
-      // simplemente mostramos los resultados que nos dio.
       setAvailableSlots(slots || []);
     }
     setLoading(false);
-  }, [totalServiceDuration, slotInterval]); // Dependencias de la función
+  }, [totalServiceDuration]);
 
-  // useEffect se encarga de llamar a la función cuando cambia la fecha
   useEffect(() => {
     fetchAvailableSlots(date);
   }, [date, fetchAvailableSlots]);
+
+  const handleDateChange = (newDate) => {
+    setDate(newDate);
+    onSlotSelect(null);
+  };
 
   return (
     <div className="my-12">
@@ -53,10 +52,7 @@ function CalendarView({ totalServiceDuration, slotInterval, onSlotSelect, select
       <div className="flex flex-col lg:flex-row gap-8 mt-8">
         <div className="flex-1">
           <Calendar 
-            onChange={(newDate) => {
-              setDate(newDate);
-              onSlotSelect(null); // Deselecciona el horario si cambia el día
-            }} 
+            onChange={handleDateChange} 
             value={date} 
             minDate={new Date()} 
           />
