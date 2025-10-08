@@ -5,65 +5,40 @@ import { supabase } from '../supabaseClient';
 import Spinner from './Spinner';
 import toast from 'react-hot-toast';
 
+// El componente solo necesita el número de personas para funcionar.
 function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const fetchAndFilterSlots = useCallback(async (selectedDate, peopleCount) => {
+
+  // Esta función se activa si cambia el día O el número de personas.
+  const fetchAvailableSlots = useCallback(async (selectedDate, peopleCount) => {
     setLoading(true);
 
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
-
-    // 1. Obtenemos la duración de la cita que TÚ configuraste en el panel.
-    const { data: setting, error: settingError } = await supabase.from('settings').select('value').eq('key', 'slot_interval_minutes').single();
-    if (settingError) {
-      toast.error("No se pudo leer la duración de la cita.");
-      setLoading(false);
-      return;
-    }
-    const currentDuration = setting ? parseInt(setting.value, 10) : 60;
     
-    // 2. Pedimos a la base de datos TODOS los bloques individuales disponibles.
+    // LLAMADA A LA FUNCIÓN DEFINITIVA EN LA BASE DE DATOS
+    // Le pasamos la fecha y el número de personas, y ella hace toda la magia.
     const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
-      p_selected_date: selectedDateStr
+      p_selected_date: selectedDateStr,
+      p_people_count: peopleCount
     });
     
     if (error) {
       toast.error("Hubo un problema al buscar horarios.");
+      console.error("Error en RPC:", error);
       setAvailableSlots([]);
     } else {
-        // 3. Filtramos los bloques si se necesita más de uno.
-        if (peopleCount > 1 && slots && slots.length > 0) {
-            const filteredSlots = [];
-            for (let i = 0; i <= slots.length - peopleCount; i++) {
-                let isBlockContinuous = true;
-                const firstSlotTime = new Date(slots[i].available_slot).getTime();
-                for (let j = 1; j < peopleCount; j++) {
-                    const nextSlotTime = new Date(slots[i + j].available_slot).getTime();
-                    
-                    // === ESTA ES LA LÍNEA QUE CORREGÍ ===
-                    // Antes decía "60 * 60 * 1000", ahora usa la duración correcta de tu panel.
-                    if (nextSlotTime - firstSlotTime !== (currentDuration * 60 * 1000 * j)) {
-                        isBlockContinuous = false;
-                        break;
-                    }
-                }
-                if (isBlockContinuous) {
-                    filteredSlots.push(slots[i]);
-                }
-            }
-            setAvailableSlots(filteredSlots);
-        } else {
-            setAvailableSlots(slots || []);
-        }
+      // Simplemente mostramos los resultados que nos da la base de datos.
+      // Ya no hay que filtrar nada aquí.
+      setAvailableSlots(slots || []);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchAndFilterSlots(date, numberOfPeople);
-  }, [date, numberOfPeople, fetchAndFilterSlots]);
+    fetchAvailableSlots(date, numberOfPeople);
+  }, [date, numberOfPeople, fetchAvailableSlots]);
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
