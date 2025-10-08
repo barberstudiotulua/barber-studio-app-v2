@@ -9,11 +9,16 @@ import { supabase } from '../../supabaseClient';
 import Spinner from './Spinner';
 import toast from 'react-hot-toast'; // Importamos toast para notificaciones
 
+<<<<<<< HEAD
 // El componente solo necesita el número de personas para funcionar.
+=======
+// NOTA: Ahora el componente solo necesita saber el NÚMERO DE PERSONAS.
+>>>>>>> parent of 0917901 (ya casi)
 function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
 
 <<<<<<< HEAD
   // Esta función se activa si cambia el día O el número de personas.
@@ -54,13 +59,30 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
 >>>>>>> parent of 2c0bb0b (y otro mas ja ja ja)
     }
     
+=======
+  const [slotDuration, setSlotDuration] = useState(60); // Guardamos la duración aquí también
+
+  // Esta función es la que busca los horarios. Se activa si cambia el día O el número de personas.
+  const fetchAndFilterSlots = useCallback(async (selectedDate, peopleCount) => {
+>>>>>>> parent of 0917901 (ya casi)
     setLoading(true);
 
 <<<<<<< HEAD
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
+<<<<<<< HEAD
     
     // LLAMADA A LA FUNCIÓN DEFINITIVA EN LA BASE DE DATOS
     // Le pasamos la fecha y el número de personas. La base de datos hace TODO el trabajo.
+=======
+
+    // 1. Primero, obtenemos la duración de la cita que TÚ configuraste en el panel de admin.
+    const { data: setting, error: settingError } = await supabase.from('settings').select('value').eq('key', 'slot_interval_minutes').single();
+    const currentDuration = setting ? parseInt(setting.value, 10) : 60;
+    if(settingError) toast.error("No se pudo leer la duración de la cita.");
+    setSlotDuration(currentDuration);
+
+    // 2. Pedimos a la base de datos TODOS los bloques individuales disponibles para ese día.
+>>>>>>> parent of 0917901 (ya casi)
     const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
       p_selected_date: selectedDateStr,
       p_people_count: peopleCount
@@ -71,9 +93,38 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
       console.error("Error en RPC:", error);
       setAvailableSlots([]);
     } else {
+<<<<<<< HEAD
       // Simplemente mostramos los resultados que nos da la base de datos.
       // Ya no hay que filtrar ni calcular nada aquí en la aplicación.
       setAvailableSlots(slots || []);
+=======
+        // 3. LA LÓGICA MÁGICA: Filtramos los bloques si se necesita más de uno.
+        if (peopleCount > 1 && slots && slots.length > 0) {
+            const filteredSlots = [];
+            // Recorremos la lista de bloques...
+            for (let i = 0; i <= slots.length - peopleCount; i++) {
+                let isBlockContinuous = true;
+                const firstSlotTime = new Date(slots[i].available_slot).getTime();
+                // ...y para cada bloque, verificamos si los siguientes X bloques son continuos.
+                for (let j = 1; j < peopleCount; j++) {
+                    const nextSlotTime = new Date(slots[i + j].available_slot).getTime();
+                    // Un bloque es continuo si empieza EXACTAMENTE donde debería (ej: 60 minutos después, 120, etc).
+                    if (nextSlotTime - firstSlotTime !== (currentDuration * 60 * 1000 * j)) {
+                        isBlockContinuous = false;
+                        break;
+                    }
+                }
+                // Si encontramos un bloque de N citas seguidas, guardamos solo la primera hora.
+                if (isBlockContinuous) {
+                    filteredSlots.push(slots[i]);
+                }
+            }
+            setAvailableSlots(filteredSlots);
+        } else {
+            // Si es solo para una persona, mostramos todos los bloques disponibles.
+            setAvailableSlots(slots || []);
+        }
+>>>>>>> parent of 0917901 (ya casi)
     }
     setLoading(false);
   }, []);
