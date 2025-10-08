@@ -5,40 +5,43 @@ import { supabase } from '../supabaseClient';
 import Spinner from './Spinner';
 import toast from 'react-hot-toast';
 
-// El componente solo necesita el número de personas para funcionar.
-function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
+// El componente recibe la duración total que necesita buscar
+function CalendarView({ totalServiceDuration, onSlotSelect, selectedTimeSlot }) {
   const [date, setDate] = useState(new Date());
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Esta función se activa si cambia el día O el número de personas.
-  const fetchAvailableSlots = useCallback(async (selectedDate, peopleCount) => {
+  // Esta función se activa si cambia el día O la duración total necesaria
+  const fetchAvailableSlots = useCallback(async (selectedDate, durationNeeded) => {
+    if (!durationNeeded || durationNeeded === 0) {
+      setAvailableSlots([]);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
 
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
-    
-    // LLAMADA A LA FUNCIÓN DEFINITIVA EN LA BASE DE DATOS
-    // Le pasamos la fecha y el número de personas, y ella hace toda la magia.
+
+    // Llamamos a la función en Supabase, pasándole la duración total que calculamos antes
     const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
       p_selected_date: selectedDateStr,
-      p_people_count: peopleCount
+      p_service_duration_mins: durationNeeded
     });
-    
+
     if (error) {
-      toast.error("Hubo un problema al buscar horarios.");
-      console.error("Error en RPC:", error);
+      console.error('Error fetching slots:', error.message);
+      toast.error("Hubo un problema al buscar horarios. Intenta de nuevo.");
       setAvailableSlots([]);
     } else {
-      // Simplemente mostramos los resultados que nos da la base de datos.
-      // Ya no hay que filtrar nada aquí.
       setAvailableSlots(slots || []);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchAvailableSlots(date, numberOfPeople);
-  }, [date, numberOfPeople, fetchAvailableSlots]);
+    fetchAvailableSlots(date, totalServiceDuration);
+  }, [date, totalServiceDuration, fetchAvailableSlots]);
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
@@ -50,11 +53,15 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
       <h3 className="text-2xl sm:text-3xl font-serif text-center mb-6">2. Elige un Horario Disponible</h3>
       <div className="flex flex-col lg:flex-row gap-8 mt-8">
         <div className="flex-1">
-          <Calendar onChange={handleDateChange} value={date} minDate={new Date()} />
+          <Calendar 
+            onChange={handleDateChange} 
+            value={date} 
+            minDate={new Date()} 
+          />
         </div>
         <div className="flex-1">
           <h4 className="text-xl font-serif mb-4 text-center lg:text-left">
-            Horarios para {date.toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+            Horarios para {date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
           </h4>
           {loading ? <Spinner /> : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -74,7 +81,7 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
                 })
               ) : (
                 <div className="col-span-full text-center text-text-soft dark:text-text-medium card-bg p-4 rounded-lg">
-                    <p>No hay bloques de tiempo continuos disponibles para {numberOfPeople} persona(s) en este día.</p>
+                    <p>No hay bloques de tiempo continuos disponibles para esta duración en este día.</p>
                 </div>
               )}
             </div>

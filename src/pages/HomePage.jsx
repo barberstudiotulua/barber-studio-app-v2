@@ -12,7 +12,7 @@ function HomePage() {
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [slotInterval, setSlotInterval] = useState(60);
+  const [slotInterval, setSlotInterval] = useState(60); // Duración de 1 cita
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
@@ -62,11 +62,10 @@ function HomePage() {
     setBookingSuccess(false);
   };
   
+  // ESTE ES EL CÁLCULO CORRECTO: Duración de 1 cita x Número de personas
   const totalAppointmentDuration = useMemo(() => {
-    if (selectedServices.length === 0) return 0;
-    const singlePersonDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
-    return singlePersonDuration * numberOfPeople;
-  }, [selectedServices, numberOfPeople]);
+    return slotInterval * numberOfPeople;
+  }, [slotInterval, numberOfPeople]);
   
   const totalPrice = useMemo(() => {
     return selectedServices.reduce((sum, s) => sum + s.price, 0) * numberOfPeople;
@@ -132,12 +131,10 @@ function HomePage() {
               <div className="text-center my-8 p-4 card-bg rounded-lg">
                 <h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3>
                 <p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p>
-                <p className="text-lg">Duración Total Estimada: <span className="font-bold">{totalAppointmentDuration} minutos</span></p>
                 <p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p>
               </div>
               <CalendarView
                 totalServiceDuration={totalAppointmentDuration}
-                slotInterval={slotInterval}
                 onSlotSelect={handleSlotSelect}
                 selectedTimeSlot={selectedTimeSlot}
               />
