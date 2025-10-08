@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+<<<<<<< HEAD
 import { supabase } from '../supabaseClient';
+=======
+import { supabase } from '../../supabaseClient';
+>>>>>>> parent of 2c0bb0b (y otro mas ja ja ja)
 import Spinner from './Spinner';
-import toast from 'react-hot-toast';
+import toast from 'react-hot-toast'; // Importamos toast para notificaciones
 
 // El componente solo necesita el número de personas para funcionar.
 function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
@@ -11,16 +15,48 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
+<<<<<<< HEAD
   // Esta función se activa si cambia el día O el número de personas.
   const fetchAvailableSlots = useCallback(async (selectedDate, peopleCount) => {
     // Si por alguna razón el número de personas es 0, no buscamos nada.
     if (!peopleCount || peopleCount === 0) {
       setAvailableSlots([]);
       return;
+=======
+  // Hemos hecho este cambio para que la búsqueda de horarios se active
+  // CADA VEZ que cambie la duración total del servicio (ej: al cambiar de 1 a 2 personas).
+  useEffect(() => {
+    async function fetchAvailableSlots() {
+      if (!totalServiceDuration || totalServiceDuration === 0) {
+        setAvailableSlots([]);
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
+
+      const selectedDateStr = date.toISOString().split('T')[0];
+
+      // Llamamos a la nueva y mejorada función en Supabase
+      const { data: slots, error } = await supabase.rpc('get_available_slots_final', {
+        p_selected_date: selectedDateStr,
+        p_service_duration_mins: totalServiceDuration
+      });
+
+      if (error) {
+        console.error('Error fetching slots:', error.message);
+        toast.error("Hubo un problema al buscar horarios. Intenta de nuevo.");
+        setAvailableSlots([]);
+      } else {
+        setAvailableSlots(slots || []);
+      }
+      setLoading(false);
+>>>>>>> parent of 2c0bb0b (y otro mas ja ja ja)
     }
     
     setLoading(true);
 
+<<<<<<< HEAD
     const selectedDateStr = selectedDate.toISOString().split('T')[0];
     
     // LLAMADA A LA FUNCIÓN DEFINITIVA EN LA BASE DE DATOS
@@ -45,6 +81,10 @@ function CalendarView({ numberOfPeople, onSlotSelect, selectedTimeSlot }) {
   useEffect(() => {
     fetchAvailableSlots(date, numberOfPeople);
   }, [date, numberOfPeople, fetchAvailableSlots]);
+=======
+    fetchAvailableSlots();
+  }, [date, totalServiceDuration]); // LA MAGIA ESTÁ AQUÍ: ahora depende de 'totalServiceDuration'
+>>>>>>> parent of 2c0bb0b (y otro mas ja ja ja)
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
