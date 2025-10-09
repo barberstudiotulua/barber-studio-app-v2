@@ -6,7 +6,7 @@ import CalendarView from '../components/CalendarView';
 import BookingForm from '../components/BookingForm';
 import { supabase } from '../supabaseClient';
 import Spinner from '../components/Spinner';
-import HistoryModal from '../components/HistoryModal'; // <-- 1. IMPORTAMOS EL NUEVO COMPONENTE
+import HistoryModal from '../components/HistoryModal';
 
 function HomePage() {
   const [selectedServices, setSelectedServices] = useState([]);
@@ -16,8 +16,6 @@ function HomePage() {
   const [slotInterval, setSlotInterval] = useState(60);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  
-  // <-- 2. NUEVO ESTADO PARA CONTROLAR LA VENTANA DE HISTORIAL
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   useEffect(() => {
@@ -74,107 +72,80 @@ function HomePage() {
     return selectedServices.reduce((sum, s) => sum + s.price, 0) * numberOfPeople;
   }, [selectedServices, numberOfPeople]);
 
-  if (bookingSuccess) {
-    return (
-      <>
-        <Header />
-        <main className="container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center" style={{ minHeight: 'calc(100vh - 280px)'}}>
-          <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
-            <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
-            <p className="text-base sm:text-lg mb-6">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
-            <div className="space-y-4">
-              <button onClick={resetFlow} className="btn-primary">Agendar otra cita</button>
-              {/* <-- 3. AÑADIMOS EL BOTÓN TAMBIÉN EN LA PANTALLA DE ÉXITO */}
-              <button onClick={() => setIsHistoryModalOpen(true)} className="w-full text-brand-gold font-semibold hover:underline">
-                Ver mis citas
-              </button>
-            </div>
-          </div>
-        </main>
-        {/* Renderizamos el modal de historial si está abierto */}
-        {isHistoryModalOpen && <HistoryModal onClose={() => setIsHistoryModalOpen(false)} />}
-      </>
-    );
-  }
-
   return (
     <>
       <Header />
+
+      {/* El contenido principal de la página ahora está dentro de este 'main' */}
       <main className="container mx-auto p-4 sm:p-6 md:p-8">
-        <div className="max-w-4xl mx-auto">
-
-          {/* <-- 4. BOTÓN PARA ABRIR EL HISTORIAL EN LA PARTE SUPERIOR */}
-          <div className="text-center mb-10">
-            <button onClick={() => setIsHistoryModalOpen(true)} className="text-brand-gold font-semibold hover:underline">
-              ¿Ya tienes una cita? Consulta aquí
-            </button>
-          </div>
-
-          <div className="w-full flex justify-center mb-10">
-            <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
-              <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
-                <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>
-                Servicios
-              </li>
-              <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
-                <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
-                <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>
-                Horario
-              </li>
-              <li className="flex items-center text-text-soft dark:text-text-medium">
-                <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
-                <span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>
-                Confirmar
-              </li>
-            </ol>
-          </div>
-
-          {selectedServices.length === 0 && (
-            <div className="text-center my-8">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2>
-              <p className="text-text-soft dark:text-text-medium text-lg">Elige uno o más servicios para comenzar.</p>
+        {bookingSuccess ? (
+          // --- PANTALLA DE ÉXITO ---
+          <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 280px)'}}>
+            <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
+              <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
+              <p className="text-base sm:text-lg mb-6">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
+              <button onClick={resetFlow} className="btn-primary">Agendar otra cita</button>
             </div>
-          )}
-          
-          <ServiceSelector 
-            onSelectionChange={handleSelectionChange}
-            selectedServices={selectedServices}
-            numberOfPeople={numberOfPeople}
-            onPeopleChange={setNumberOfPeople}
-          />
-
-          {loadingSettings && selectedServices.length > 0 && <Spinner />}
-
-          {!loadingSettings && selectedServices.length > 0 && (
-            <>
-              <div className="text-center my-8 p-4 card-bg rounded-lg">
-                <h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3>
-                <p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p>
-                <p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p>
+          </div>
+        ) : (
+          // --- FLUJO DE RESERVA NORMAL ---
+          <div className="max-w-4xl mx-auto">
+            <div className="w-full flex justify-center mb-10">
+              <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
+                {/* ... (pasos de la reserva) ... */}
+                <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
+                  <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>
+                  Servicios
+                </li>
+                <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
+                  <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
+                  <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>
+                  Horario
+                </li>
+                <li className="flex items-center text-text-soft dark:text-text-medium">
+                  <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
+                  <span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>
+                  Confirmar
+                </li>
+              </ol>
+            </div>
+            {selectedServices.length === 0 && (
+              <div className="text-center my-8">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2>
+                <p className="text-text-soft dark:text-text-medium text-lg">Elige uno o más servicios para comenzar.</p>
               </div>
-              <CalendarView
-                totalServiceDuration={totalAppointmentDuration}
-                onSlotSelect={handleSlotSelect}
-                selectedTimeSlot={selectedTimeSlot}
-              />
-            </>
-          )}
-
-          {isBookingModalOpen && selectedTimeSlot && (
-              <BookingForm 
-                selectedServices={selectedServices}
-                totalPrice={totalPrice}
-                totalDuration={totalAppointmentDuration}
-                numberOfPeople={numberOfPeople}
-                timeSlot={selectedTimeSlot}
-                onBookingSuccess={handleBookingSuccess}
-                onClose={handleCloseModal}
-              />
-          )}
-        </div>
+            )}
+            <ServiceSelector onSelectionChange={handleSelectionChange} selectedServices={selectedServices} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} />
+            {!loadingSettings && selectedServices.length > 0 && (
+              <>
+                <div className="text-center my-8 p-4 card-bg rounded-lg">
+                  <h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3>
+                  <p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p>
+                  <p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p>
+                </div>
+                <CalendarView totalServiceDuration={totalAppointmentDuration} onSlotSelect={handleSlotSelect} selectedTimeSlot={selectedTimeSlot} />
+              </>
+            )}
+            {isBookingModalOpen && selectedTimeSlot && (
+                <BookingForm selectedServices={selectedServices} totalPrice={totalPrice} totalDuration={totalAppointmentDuration} numberOfPeople={numberOfPeople} timeSlot={selectedTimeSlot} onBookingSuccess={handleBookingSuccess} onClose={handleCloseModal} />
+            )}
+          </div>
+        )}
       </main>
-      
-      {/* <-- 5. RENDERIZAMOS EL MODAL DE HISTORIAL SI ESTÁ ABIERTO --> */}
+
+      {/* --- NUEVO BOTÓN FLOTANTE --- */}
+      <button
+        onClick={() => setIsHistoryModalOpen(true)}
+        className="fixed bottom-6 left-6 z-50 bg-brand-gold text-dark-primary p-4 rounded-full shadow-lg hover:opacity-90 transition-all transform hover:scale-110 animate-fade-in-up"
+        aria-label="Consultar mis citas"
+        title="Consultar mis citas"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </button>
+
+      {/* El modal de historial se renderiza aquí, fuera del flujo principal */}
       {isHistoryModalOpen && <HistoryModal onClose={() => setIsHistoryModalOpen(false)} />}
     </>
   );
