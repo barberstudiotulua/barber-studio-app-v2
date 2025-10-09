@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import BarberLogo from '../assets/barber-logo.png'; // <-- HEMOS BORRADO ESTA LÍNEA
 import ThemeToggleButton from './ThemeToggleButton';
 
 function Header() {
@@ -73,7 +72,7 @@ function Header() {
         <ThemeToggleButton />
       </div>
       <img 
-        src="/barber-logo.png" // <-- EL ÚNICO CAMBIO IMPORTANTE ESTÁ AQUÍ
+        src="/barber-logo.png" 
         alt="Barber Studio Logo"
         className={`mx-auto h-16 sm:h-20 w-auto cursor-pointer transition-transform duration-300 ${logoAnimationClass}`}
         onClick={handleLogoClick}
@@ -84,7 +83,7 @@ function Header() {
       <h2 className="text-xl sm:text-2xl md:text-3xl font-serif tracking-wider text-brand-gold">
         Night and Day
       </h2>
-      <p className="text-sm text-text-soft dark:text-text-medium mt-2 tracking-widest">v1.2</p>
+      {/* LA LÍNEA DE LA VERSIÓN v1.2 HA SIDO ELIMINADA DE AQUÍ */}
     </header>
   );
 }
