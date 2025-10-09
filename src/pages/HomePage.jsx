@@ -76,10 +76,8 @@ function HomePage() {
     <>
       <Header />
 
-      {/* El contenido principal de la página ahora está dentro de este 'main' */}
       <main className="container mx-auto p-4 sm:p-6 md:p-8">
         {bookingSuccess ? (
-          // --- PANTALLA DE ÉXITO ---
           <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 280px)'}}>
             <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
               <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
@@ -88,11 +86,9 @@ function HomePage() {
             </div>
           </div>
         ) : (
-          // --- FLUJO DE RESERVA NORMAL ---
           <div className="max-w-4xl mx-auto">
             <div className="w-full flex justify-center mb-10">
               <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
-                {/* ... (pasos de la reserva) ... */}
                 <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
                   <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>
                   Servicios
@@ -133,19 +129,16 @@ function HomePage() {
         )}
       </main>
 
-      {/* --- NUEVO BOTÓN FLOTANTE --- */}
+      {/* --- BOTÓN FLOTANTE MODIFICADO CON TEXTO --- */}
       <button
         onClick={() => setIsHistoryModalOpen(true)}
-        className="fixed bottom-6 left-6 z-50 bg-brand-gold text-dark-primary p-4 rounded-full shadow-lg hover:opacity-90 transition-all transform hover:scale-110 animate-fade-in-up"
+        className="fixed bottom-6 left-6 z-50 bg-brand-gold text-dark-primary font-bold py-3 px-6 rounded-full shadow-lg hover:opacity-90 transition-all transform hover:scale-105 animate-fade-in-up"
         aria-label="Consultar mis citas"
         title="Consultar mis citas"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+        Consulta tus citas aquí
       </button>
 
-      {/* El modal de historial se renderiza aquí, fuera del flujo principal */}
       {isHistoryModalOpen && <HistoryModal onClose={() => setIsHistoryModalOpen(false)} />}
     </>
   );
