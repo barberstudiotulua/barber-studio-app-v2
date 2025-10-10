@@ -8,7 +8,23 @@ import { supabase } from '../supabaseClient';
 import Spinner from '../components/Spinner';
 import HistoryModal from '../components/HistoryModal';
 
+// Leemos la clave pública que guardamos en Netlify
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+// Función técnica para convertir la clave a un formato que el navegador entiende
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 function HomePage() {
+  // ... (estados existentes)
   const [selectedServices, setSelectedServices] = useState([]);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
@@ -18,127 +34,131 @@ function HomePage() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
+  // --- NUEVO ESTADO PARA GUARDAR EL ID DEL CLIENTE QUE RESERVÓ ---
+  const [lastBookingClientId, setLastBookingClientId] = useState(null);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  // ... (useEffect existente)
   useEffect(() => {
     async function fetchSettings() {
       setLoadingSettings(true);
       const { data: setting, error } = await supabase.from('settings').select('value').eq('key', 'slot_interval_minutes').single();
-      if (error) {
-        toast.error("No se pudo cargar la configuración de la agenda.");
-      } else if (setting) {
-        setSlotInterval(parseInt(setting.value, 10));
-      }
+      if (error) toast.error("No se pudo cargar la configuración de la agenda.");
+      else if (setting) setSlotInterval(parseInt(setting.value, 10));
       setLoadingSettings(false);
     }
     fetchSettings();
   }, []);
 
-  const handleSelectionChange = (services) => {
-    setSelectedTimeSlot(null);
-    setSelectedServices(services);
-  };
-
-  const handleSlotSelect = (slot) => {
-    if (selectedTimeSlot === slot) {
-      setSelectedTimeSlot(null);
-      setIsBookingModalOpen(false);
-    } else {
-      setSelectedTimeSlot(slot);
-      setIsBookingModalOpen(true);
-    }
-  };
-
-  const handleBookingSuccess = () => {
+  const handleSelectionChange = (services) => { /* ... (sin cambios) */ setSelectedTimeSlot(null); setSelectedServices(services); };
+  const handleSlotSelect = (slot) => { /* ... (sin cambios) */ if (selectedTimeSlot === slot) { setSelectedTimeSlot(null); setIsBookingModalOpen(false); } else { setSelectedTimeSlot(slot); setIsBookingModalOpen(true); } };
+  const handleCloseModal = () => { /* ... (sin cambios) */ setIsBookingModalOpen(false); setSelectedTimeSlot(null); };
+  
+  // --- FUNCIÓN MODIFICADA ---
+  // Ahora recibe el ID del cliente desde el formulario
+  const handleBookingSuccess = (clientId) => {
     setBookingSuccess(true);
+    setLastBookingClientId(clientId); // Guardamos el ID del cliente
     setSelectedServices([]);
     setSelectedTimeSlot(null);
     setNumberOfPeople(1);
     setIsBookingModalOpen(false);
   };
 
-  const handleCloseModal = () => {
-    setIsBookingModalOpen(false);
-    setSelectedTimeSlot(null);
-  };
-
   const resetFlow = () => {
     setBookingSuccess(false);
+    setLastBookingClientId(null); // Limpiamos el ID
+  };
+
+  // --- NUEVA FUNCIÓN PARA MANEJAR LA SUSCRIPCIÓN A NOTIFICACIONES ---
+  const handleSubscribe = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      toast.error('Tu navegador no es compatible con notificaciones.');
+      return;
+    }
+    
+    setIsSubscribing(true);
+    const toastId = toast.loading('Activando recordatorios...');
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      // Guardamos la suscripción en la base de datos junto al ID del cliente
+      const { error } = await supabase
+        .from('subscriptions')
+        .insert({
+          client_id: lastBookingClientId,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.toJSON().keys.p256dh,
+          auth: subscription.toJSON().keys.auth,
+        });
+
+      if (error && error.code !== '23505') { // Ignoramos el error si ya existe
+        throw error;
+      }
+      
+      toast.success('¡Listo! Te recordaremos tu cita.', { id: toastId });
+    } catch (err) {
+      console.error('Error al suscribir:', err);
+      toast.error('No se pudo activar. Asegúrate de dar permiso en la ventana del navegador.', { id: toastId });
+    } finally {
+      setIsSubscribing(false);
+    }
   };
   
-  const totalAppointmentDuration = useMemo(() => {
-    return slotInterval * numberOfPeople;
-  }, [slotInterval, numberOfPeople]);
-  
-  const totalPrice = useMemo(() => {
-    return selectedServices.reduce((sum, s) => sum + s.price, 0) * numberOfPeople;
-  }, [selectedServices, numberOfPeople]);
+  // ... (cálculos de precio y duración sin cambios)
+  const totalAppointmentDuration = useMemo(() => slotInterval * numberOfPeople, [slotInterval, numberOfPeople]);
+  const totalPrice = useMemo(() => selectedServices.reduce((sum, s) => sum + s.price, 0) * numberOfPeople, [selectedServices, numberOfPeople]);
 
   return (
     <>
       <Header />
-
       <main className="container mx-auto p-4 sm:p-6 md:p-8">
         {bookingSuccess ? (
+          // --- PANTALLA DE ÉXITO MODIFICADA ---
           <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 280px)'}}>
             <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
               <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
               <p className="text-base sm:text-lg mb-6">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
-              <button onClick={resetFlow} className="btn-primary">Agendar otra cita</button>
+              
+              <div className="space-y-4 mt-8">
+                {/* EL NUEVO BOTÓN PRINCIPAL */}
+                <button onClick={handleSubscribe} disabled={isSubscribing} className="btn-primary">
+                  {isSubscribing ? 'Activando...' : '¡Sí, recuérdame la cita!'}
+                </button>
+                {/* El botón para agendar otra cita ahora es secundario */}
+                <button onClick={resetFlow} className="w-full text-text-soft dark:text-text-medium font-semibold hover:underline">
+                  Agendar otra cita
+                </button>
+              </div>
             </div>
           </div>
         ) : (
+          // ... (resto del flujo de reserva sin cambios)
           <div className="max-w-4xl mx-auto">
+            <button onClick={() => setIsHistoryModalOpen(true)} className="block text-center mx-auto mb-10 text-brand-gold font-semibold hover:underline">
+              ¿Ya tienes una cita? Consulta aquí
+            </button>
             <div className="w-full flex justify-center mb-10">
               <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
-                <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
-                  <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>
-                  Servicios
-                </li>
-                <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}>
-                  <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
-                  <span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>
-                  Horario
-                </li>
-                <li className="flex items-center text-text-soft dark:text-text-medium">
-                  <svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg>
-                  <span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>
-                  Confirmar
-                </li>
+                <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>Servicios</li>
+                <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>Horario</li>
+                <li className="flex items-center text-text-soft dark:text-text-medium"><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg><span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>Confirmar</li>
               </ol>
             </div>
-            {selectedServices.length === 0 && (
-              <div className="text-center my-8">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2>
-                <p className="text-text-soft dark:text-text-medium text-lg">Elige uno o más servicios para comenzar.</p>
-              </div>
-            )}
+            {selectedServices.length === 0 && <div className="text-center my-8"><h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2><p className="text-text-soft dark:text-text-medium text-lg">Elige uno o más servicios para comenzar.</p></div>}
             <ServiceSelector onSelectionChange={handleSelectionChange} selectedServices={selectedServices} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} />
-            {!loadingSettings && selectedServices.length > 0 && (
-              <>
-                <div className="text-center my-8 p-4 card-bg rounded-lg">
-                  <h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3>
-                  <p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p>
-                  <p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p>
-                </div>
-                <CalendarView totalServiceDuration={totalAppointmentDuration} onSlotSelect={handleSlotSelect} selectedTimeSlot={selectedTimeSlot} />
-              </>
-            )}
-            {isBookingModalOpen && selectedTimeSlot && (
-                <BookingForm selectedServices={selectedServices} totalPrice={totalPrice} totalDuration={totalAppointmentDuration} numberOfPeople={numberOfPeople} timeSlot={selectedTimeSlot} onBookingSuccess={handleBookingSuccess} onClose={handleCloseModal} />
-            )}
+            {!loadingSettings && selectedServices.length > 0 && (<><div className="text-center my-8 p-4 card-bg rounded-lg"><h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3><p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p><p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p></div><CalendarView totalServiceDuration={totalAppointmentDuration} onSlotSelect={handleSlotSelect} selectedTimeSlot={selectedTimeSlot} /></>)}
+            {isBookingModalOpen && selectedTimeSlot && (<BookingForm selectedServices={selectedServices} totalPrice={totalPrice} totalDuration={totalAppointmentDuration} numberOfPeople={numberOfPeople} timeSlot={selectedTimeSlot} onBookingSuccess={handleBookingSuccess} onClose={handleCloseModal} />)}
           </div>
         )}
       </main>
-
-      {/* --- BOTÓN FLOTANTE MODIFICADO CON TEXTO --- */}
-      <button
-        onClick={() => setIsHistoryModalOpen(true)}
-        className="fixed bottom-6 left-6 z-50 bg-brand-gold text-dark-primary font-bold py-3 px-6 rounded-full shadow-lg hover:opacity-90 transition-all transform hover:scale-105 animate-fade-in-up"
-        aria-label="Consultar mis citas"
-        title="Consultar mis citas"
-      >
-        Consulta tus citas aquí
-      </button>
-
+      
+      <button onClick={() => setIsHistoryModalOpen(true)} className="fixed bottom-6 left-6 z-50 bg-brand-gold text-dark-primary font-bold py-3 px-6 rounded-full shadow-lg hover:opacity-90 transition-all transform hover:scale-105 animate-fade-in-up" aria-label="Consultar mis citas" title="Consultar mis citas">Consulta tus citas aquí</button>
       {isHistoryModalOpen && <HistoryModal onClose={() => setIsHistoryModalOpen(false)} />}
     </>
   );
