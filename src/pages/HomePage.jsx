@@ -10,6 +10,11 @@ import HistoryModal from '../components/HistoryModal';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
+// --- LÍNEA DE DIAGNÓSTICO AÑADIDA ---
+// Esto imprimirá la clave en la consola del navegador para que podamos ver si la está recibiendo.
+console.log('Clave Pública VAPID:', VAPID_PUBLIC_KEY);
+// ------------------------------------
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -32,8 +37,6 @@ function HomePage() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [lastBookingClientId, setLastBookingClientId] = useState(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
-  
-  // --- NUEVO ESTADO PARA CONTROLAR EL BOTÓN FINAL ---
   const [subscriptionDone, setSubscriptionDone] = useState(false);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ function HomePage() {
     setSelectedTimeSlot(null);
     setNumberOfPeople(1);
     setIsBookingModalOpen(false);
-    setSubscriptionDone(false); // Reiniciamos el estado del botón
+    setSubscriptionDone(false);
   };
 
   const resetFlow = () => {
@@ -81,6 +84,11 @@ function HomePage() {
     const toastId = toast.loading('Activando recordatorios...');
 
     try {
+      // Si la clave no está disponible, mostramos un error claro.
+      if (!VAPID_PUBLIC_KEY) {
+        throw new Error('La clave pública VAPID no está configurada.');
+      }
+
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -101,7 +109,7 @@ function HomePage() {
       }
       
       toast.success('¡Listo! Te recordaremos tu cita.', { id: toastId });
-      setSubscriptionDone(true); // Marcamos que la suscripción fue exitosa
+      setSubscriptionDone(true);
     } catch (err) {
       console.error('Error al suscribir:', err);
       toast.error('No se pudo activar. Asegúrate de dar permiso en la ventana del navegador.', { id: toastId });
@@ -122,8 +130,6 @@ function HomePage() {
             <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
               <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
               <p className="text-base sm:text-lg mb-8">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
-              
-              {/* --- NUEVA LÓGICA DEL BOTÓN --- */}
               <div className="mt-8">
                 <button 
                   onClick={handleSubscribe} 
@@ -143,7 +149,7 @@ function HomePage() {
             <div className="w-full flex justify-center mb-10">
               <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
                 <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>Servicios</li>
-                <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>Horario</li>
+                <li className={`flex items-center transition-colors ${selectedTimeSlot ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4"/></svg><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedTimeSlot ? 'border-brand-gold' : 'border-gray-500'}`}>2</span>Horario</li>
                 <li className="flex items-center text-text-soft dark:text-text-medium"><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg><span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>Confirmar</li>
               </ol>
             </div>
