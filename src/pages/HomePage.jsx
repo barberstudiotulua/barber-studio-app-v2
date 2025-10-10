@@ -1,4 +1,4 @@
-import React, 'useState', useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Header from '../components/Header';
 import ServiceSelector from '../components/ServiceSelector';
@@ -9,6 +9,8 @@ import Spinner from '../components/Spinner';
 import HistoryModal from '../components/HistoryModal';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+// La línea de diagnóstico "console.log" ha sido eliminada.
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -129,7 +131,9 @@ function HomePage() {
           </div>
         ) : (
           <div className="max-w-4xl mx-auto">
-            {/* El enlace de texto ha sido eliminado de aquí */}
+            <button onClick={() => setIsHistoryModalOpen(true)} className="block text-center mx-auto mb-10 text-brand-gold font-semibold hover:underline">
+              ¿Ya tienes una cita? Consulta aquí
+            </button>
             <div className="w-full flex justify-center mb-10">
               <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
                 <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>Servicios</li>
@@ -137,13 +141,7 @@ function HomePage() {
                 <li className="flex items-center text-text-soft dark:text-text-medium"><svg className="w-3 h-3 mx-2 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 12 10"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m7 9 4-4-4-4M1 9l4-4-4-4"/></svg><span className="flex items-center justify-center w-6 h-6 me-2 text-xs border border-gray-500 rounded-full shrink-0">3</span>Confirmar</li>
               </ol>
             </div>
-            {selectedServices.length === 0 && (
-              <div className="text-center my-8">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2>
-                {/* --- ESTE ES EL TEXTO CAMBIADO --- */}
-                <p className="text-text-soft dark:text-text-medium text-lg">Bienvenido. Comienza eligiendo tus servicios.</p>
-              </div>
-            )}
+            {selectedServices.length === 0 && <div className="text-center my-8"><h2 className="text-3xl sm:text-4xl md:text-5xl mb-4">Agenda tu Cita</h2><p className="text-text-soft dark:text-text-medium text-lg">Bienvenido. Comienza eligiendo tus servicios.</p></div>}
             <ServiceSelector onSelectionChange={handleSelectionChange} selectedServices={selectedServices} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} />
             {!loadingSettings && selectedServices.length > 0 && (<><div className="text-center my-8 p-4 card-bg rounded-lg"><h3 className="text-xl sm:text-2xl font-serif text-brand-gold">Resumen de tu Cita</h3><p className="text-lg">Total Personas: <span className="font-bold">{numberOfPeople}</span></p><p className="text-lg">Precio Total: <span className="font-bold text-brand-gold">${totalPrice.toFixed(2)}</span></p></div><CalendarView totalServiceDuration={totalAppointmentDuration} onSlotSelect={handleSlotSelect} selectedTimeSlot={selectedTimeSlot} /></>)}
             {isBookingModalOpen && selectedTimeSlot && (<BookingForm selectedServices={selectedServices} totalPrice={totalPrice} totalDuration={totalAppointmentDuration} numberOfPeople={numberOfPeople} timeSlot={selectedTimeSlot} onBookingSuccess={handleBookingSuccess} onClose={handleCloseModal} />)}
