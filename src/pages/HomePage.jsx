@@ -8,10 +8,8 @@ import { supabase } from '../supabaseClient';
 import Spinner from '../components/Spinner';
 import HistoryModal from '../components/HistoryModal';
 
-// Leemos la clave pública que guardamos en Netlify
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-// Función técnica para convertir la clave a un formato que el navegador entiende
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -24,7 +22,6 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 function HomePage() {
-  // ... (estados existentes)
   const [selectedServices, setSelectedServices] = useState([]);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
@@ -33,12 +30,12 @@ function HomePage() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-
-  // --- NUEVO ESTADO PARA GUARDAR EL ID DEL CLIENTE QUE RESERVÓ ---
   const [lastBookingClientId, setLastBookingClientId] = useState(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  
+  // --- NUEVO ESTADO PARA CONTROLAR EL BOTÓN FINAL ---
+  const [subscriptionDone, setSubscriptionDone] = useState(false);
 
-  // ... (useEffect existente)
   useEffect(() => {
     async function fetchSettings() {
       setLoadingSettings(true);
@@ -50,28 +47,31 @@ function HomePage() {
     fetchSettings();
   }, []);
 
-  const handleSelectionChange = (services) => { /* ... (sin cambios) */ setSelectedTimeSlot(null); setSelectedServices(services); };
-  const handleSlotSelect = (slot) => { /* ... (sin cambios) */ if (selectedTimeSlot === slot) { setSelectedTimeSlot(null); setIsBookingModalOpen(false); } else { setSelectedTimeSlot(slot); setIsBookingModalOpen(true); } };
-  const handleCloseModal = () => { /* ... (sin cambios) */ setIsBookingModalOpen(false); setSelectedTimeSlot(null); };
+  const handleSelectionChange = (services) => { setSelectedTimeSlot(null); setSelectedServices(services); };
+  const handleSlotSelect = (slot) => { if (selectedTimeSlot === slot) { setSelectedTimeSlot(null); setIsBookingModalOpen(false); } else { setSelectedTimeSlot(slot); setIsBookingModalOpen(true); } };
+  const handleCloseModal = () => { setIsBookingModalOpen(false); setSelectedTimeSlot(null); };
   
-  // --- FUNCIÓN MODIFICADA ---
-  // Ahora recibe el ID del cliente desde el formulario
   const handleBookingSuccess = (clientId) => {
     setBookingSuccess(true);
-    setLastBookingClientId(clientId); // Guardamos el ID del cliente
+    setLastBookingClientId(clientId);
     setSelectedServices([]);
     setSelectedTimeSlot(null);
     setNumberOfPeople(1);
     setIsBookingModalOpen(false);
+    setSubscriptionDone(false); // Reiniciamos el estado del botón
   };
 
   const resetFlow = () => {
     setBookingSuccess(false);
-    setLastBookingClientId(null); // Limpiamos el ID
+    setLastBookingClientId(null);
   };
 
-  // --- NUEVA FUNCIÓN PARA MANEJAR LA SUSCRIPCIÓN A NOTIFICACIONES ---
   const handleSubscribe = async () => {
+    if (subscriptionDone) {
+      resetFlow();
+      return;
+    }
+    
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       toast.error('Tu navegador no es compatible con notificaciones.');
       return;
@@ -87,7 +87,6 @@ function HomePage() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
-      // Guardamos la suscripción en la base de datos junto al ID del cliente
       const { error } = await supabase
         .from('subscriptions')
         .insert({
@@ -97,11 +96,12 @@ function HomePage() {
           auth: subscription.toJSON().keys.auth,
         });
 
-      if (error && error.code !== '23505') { // Ignoramos el error si ya existe
+      if (error && error.code !== '23505') {
         throw error;
       }
       
       toast.success('¡Listo! Te recordaremos tu cita.', { id: toastId });
+      setSubscriptionDone(true); // Marcamos que la suscripción fue exitosa
     } catch (err) {
       console.error('Error al suscribir:', err);
       toast.error('No se pudo activar. Asegúrate de dar permiso en la ventana del navegador.', { id: toastId });
@@ -110,7 +110,6 @@ function HomePage() {
     }
   };
   
-  // ... (cálculos de precio y duración sin cambios)
   const totalAppointmentDuration = useMemo(() => slotInterval * numberOfPeople, [slotInterval, numberOfPeople]);
   const totalPrice = useMemo(() => selectedServices.reduce((sum, s) => sum + s.price, 0) * numberOfPeople, [selectedServices, numberOfPeople]);
 
@@ -119,26 +118,24 @@ function HomePage() {
       <Header />
       <main className="container mx-auto p-4 sm:p-6 md:p-8">
         {bookingSuccess ? (
-          // --- PANTALLA DE ÉXITO MODIFICADA ---
           <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 280px)'}}>
             <div className="text-center card-bg p-6 sm:p-8 rounded-lg shadow-xl max-w-lg">
               <h2 className="text-3xl sm:text-4xl font-serif text-brand-gold mb-4">¡Cita Confirmada!</h2>
-              <p className="text-base sm:text-lg mb-6">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
+              <p className="text-base sm:text-lg mb-8">Hemos agendado tu cita con éxito. ¡Te esperamos en Barber Studio!</p>
               
-              <div className="space-y-4 mt-8">
-                {/* EL NUEVO BOTÓN PRINCIPAL */}
-                <button onClick={handleSubscribe} disabled={isSubscribing} className="btn-primary">
-                  {isSubscribing ? 'Activando...' : '¡Sí, recuérdame la cita!'}
-                </button>
-                {/* El botón para agendar otra cita ahora es secundario */}
-                <button onClick={resetFlow} className="w-full text-text-soft dark:text-text-medium font-semibold hover:underline">
-                  Agendar otra cita
+              {/* --- NUEVA LÓGICA DEL BOTÓN --- */}
+              <div className="mt-8">
+                <button 
+                  onClick={handleSubscribe} 
+                  disabled={isSubscribing} 
+                  className={`btn-primary ${subscriptionDone ? 'bg-green-600' : ''}`}
+                >
+                  {isSubscribing ? 'Activando...' : (subscriptionDone ? '¡Todo listo!' : 'Recuérdame la cita')}
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          // ... (resto del flujo de reserva sin cambios)
           <div className="max-w-4xl mx-auto">
             <button onClick={() => setIsHistoryModalOpen(true)} className="block text-center mx-auto mb-10 text-brand-gold font-semibold hover:underline">
               ¿Ya tienes una cita? Consulta aquí
