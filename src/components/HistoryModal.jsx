@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import Spinner from './Spinner';
-// Importamos el modal de reprogramación que ya existe
 import RescheduleModal from './admin/RescheduleModal';
 
 const StatusBadge = ({ status }) => {
@@ -20,12 +19,9 @@ function HistoryModal({ onClose }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-
-  // --- NUEVOS ESTADOS PARA CONTROLAR EL MODAL DE REPROGRAMACIÓN ---
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [appointmentToReschedule, setAppointmentToReschedule] = useState(null);
 
-  // Esta función se activa cuando se presiona el botón "Buscar"
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!phone.trim()) {
@@ -37,13 +33,12 @@ function HistoryModal({ onClose }) {
     setHasSearched(true);
     setAppointments([]);
 
-    // Ahora pedimos también el ID de la cita y la hora de fin
+    // --- CORRECCIÓN AQUÍ: Eliminamos el filtro de fecha futura ---
     const { data, error } = await supabase
       .from('appointments')
       .select('id, start_time, end_time, notes, status, clients!inner(full_name, phone_number)')
       .eq('clients.phone_number', phone)
-      .gt('start_time', new Date().toISOString()) // Solo mostramos citas futuras
-      .order('start_time', { ascending: true }); // De la más próxima a la más lejana
+      .order('start_time', { ascending: false }); // Mantenemos el orden de la más reciente a la más antigua
 
     if (error) {
       toast.error('Hubo un error al buscar tus citas.');
@@ -53,7 +48,6 @@ function HistoryModal({ onClose }) {
     setLoading(false);
   };
 
-  // --- NUEVAS FUNCIONES PARA MANEJAR LA REPROGRAMACIÓN ---
   const handleOpenReschedule = (appointment) => {
     setAppointmentToReschedule(appointment);
     setIsRescheduleModalOpen(true);
@@ -62,20 +56,19 @@ function HistoryModal({ onClose }) {
   const handleSaveReschedule = async (newStartTime) => {
     const toastId = toast.loading('Reprogramando tu cita...');
     
-    // Llamamos a nuestro "comando seguro" en la base de datos
     const { data, error } = await supabase.rpc('reschedule_appointment_by_client', {
       p_appointment_id: appointmentToReschedule.id,
       p_client_phone_number: phone,
       p_new_start_time: newStartTime.toISOString(),
     });
 
-    if (error || data.startsWith('Error')) {
+    if (error || (data && data.startsWith('Error'))) { // Pequeña mejora para capturar errores de la función RPC
       toast.error(error?.message || data || 'No se pudo reprogramar la cita.', { id: toastId });
     } else {
       toast.success('¡Tu cita ha sido reprogramada con éxito!', { id: toastId });
       setIsRescheduleModalOpen(false);
       setAppointmentToReschedule(null);
-      handleSearch(); // Refrescamos la lista de citas
+      handleSearch(); 
     }
   };
 
@@ -84,7 +77,7 @@ function HistoryModal({ onClose }) {
       <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
         <div className="card-bg p-6 sm:p-8 rounded-lg w-full max-w-lg shadow-xl relative animate-fade-in-up max-h-[80vh] flex flex-col">
           <button onClick={onClose} className="absolute top-3 right-3 text-4xl text-text-soft dark:text-text-medium hover:text-text-dark dark:hover:text-text-light transition-colors" aria-label="Cerrar modal">&times;</button>
-          <h3 className="text-2xl sm:text-3xl font-serif text-center mb-6 text-brand-gold">Consultar mis Citas</h3>
+          <h3 className="text-2xl sm:text-3xl font-serif text-center mb-6 text-brand-gold">Historial de Citas</h3>
           
           <form onSubmit={handleSearch} className="flex gap-2 mb-6">
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input-primary flex-grow" placeholder="Ingresa tu número de teléfono" required />
@@ -93,7 +86,7 @@ function HistoryModal({ onClose }) {
 
           <div className="overflow-y-auto flex-grow pr-2">
             {loading && <Spinner />}
-            {!loading && hasSearched && appointments.length === 0 && <p className="text-center text-text-soft dark:text-text-medium mt-4">No se encontraron citas pendientes para este número.</p>}
+            {!loading && hasSearched && appointments.length === 0 && <p className="text-center text-text-soft dark:text-text-medium mt-4">No se encontraron citas para este número.</p>}
             {!loading && appointments.length > 0 && (
               <div className="space-y-4">
                 {appointments.map(appt => (
@@ -104,7 +97,7 @@ function HistoryModal({ onClose }) {
                     </div>
                     <p className="text-text-dark dark:text-text-light mt-1">{appt.notes}</p>
                     
-                    {/* --- AQUÍ ESTÁ EL NUEVO BOTÓN --- */}
+                    {/* El botón solo aparece si la cita está 'Pendiente' */}
                     {appt.status === 'Pendiente' && (
                       <div className="text-right mt-3">
                         <button onClick={() => handleOpenReschedule(appt)} className="text-blue-500 dark:text-blue-400 font-semibold hover:underline">
@@ -120,7 +113,6 @@ function HistoryModal({ onClose }) {
         </div>
       </div>
       
-      {/* --- RENDERIZADO DEL MODAL DE REPROGRAMACIÓN --- */}
       {isRescheduleModalOpen && (
         <RescheduleModal
           appointment={appointmentToReschedule}
@@ -130,6 +122,3 @@ function HistoryModal({ onClose }) {
       )}
     </>
   );
-}
-
-export default HistoryModal;
