@@ -33,12 +33,13 @@ function HistoryModal({ onClose }) {
     setHasSearched(true);
     setAppointments([]);
 
-    // --- CORRECCIÓN AQUÍ: Eliminamos el filtro de fecha futura ---
+    // --- CORRECCIÓN IMPORTANTE: Se ha quitado el filtro de fecha ---
+    // Ahora la consulta trae TODAS las citas del cliente.
     const { data, error } = await supabase
       .from('appointments')
       .select('id, start_time, end_time, notes, status, clients!inner(full_name, phone_number)')
       .eq('clients.phone_number', phone)
-      .order('start_time', { ascending: false }); // Mantenemos el orden de la más reciente a la más antigua
+      .order('start_time', { ascending: false }); // Se mantiene el orden de la más reciente a la más antigua
 
     if (error) {
       toast.error('Hubo un error al buscar tus citas.');
@@ -62,7 +63,7 @@ function HistoryModal({ onClose }) {
       p_new_start_time: newStartTime.toISOString(),
     });
 
-    if (error || (data && data.startsWith('Error'))) { // Pequeña mejora para capturar errores de la función RPC
+    if (error || (data && data.startsWith('Error'))) {
       toast.error(error?.message || data || 'No se pudo reprogramar la cita.', { id: toastId });
     } else {
       toast.success('¡Tu cita ha sido reprogramada con éxito!', { id: toastId });
@@ -89,24 +90,30 @@ function HistoryModal({ onClose }) {
             {!loading && hasSearched && appointments.length === 0 && <p className="text-center text-text-soft dark:text-text-medium mt-4">No se encontraron citas para este número.</p>}
             {!loading && appointments.length > 0 && (
               <div className="space-y-4">
-                {appointments.map(appt => (
-                  <div key={appt.id} className="p-4 rounded-lg bg-light-primary dark:bg-dark-primary border border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="font-bold text-lg text-brand-gold">{new Date(appt.start_time).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' })}</p>
-                      <StatusBadge status={appt.status || 'Pendiente'} />
-                    </div>
-                    <p className="text-text-dark dark:text-text-light mt-1">{appt.notes}</p>
-                    
-                    {/* El botón solo aparece si la cita está 'Pendiente' */}
-                    {appt.status === 'Pendiente' && (
-                      <div className="text-right mt-3">
-                        <button onClick={() => handleOpenReschedule(appt)} className="text-blue-500 dark:text-blue-400 font-semibold hover:underline">
-                          Reprogramar Cita
-                        </button>
+                {appointments.map(appt => {
+                  // --- LÓGICA CLAVE: Condición para mostrar el botón ---
+                  // La cita debe estar 'Pendiente' Y la fecha debe ser futura.
+                  const isReschedulable = appt.status === 'Pendiente' && new Date(appt.start_time) > new Date();
+
+                  return (
+                    <div key={appt.id} className="p-4 rounded-lg bg-light-primary dark:bg-dark-primary border border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="font-bold text-lg text-brand-gold">{new Date(appt.start_time).toLocaleString('es-ES', { dateStyle: 'full', timeStyle: 'short' })}</p>
+                        <StatusBadge status={appt.status || 'Pendiente'} />
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <p className="text-text-dark dark:text-text-light mt-1">{appt.notes}</p>
+                      
+                      {/* El botón solo se muestra si la condición es verdadera */}
+                      {isReschedulable && (
+                        <div className="text-right mt-3">
+                          <button onClick={() => handleOpenReschedule(appt)} className="text-blue-500 dark:text-blue-400 font-semibold hover:underline">
+                            Reprogramar Cita
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
