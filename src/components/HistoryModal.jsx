@@ -124,3 +124,6 @@ function HistoryModal({ onClose }) {
       )}
     </>
   );
+} // <-- ESTA LLAVE FALTABA. MI ERROR.
+
+export default HistoryModal;
