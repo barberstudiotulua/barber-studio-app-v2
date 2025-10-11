@@ -33,13 +33,11 @@ function HistoryModal({ onClose }) {
     setHasSearched(true);
     setAppointments([]);
 
-    // --- CORRECCIÓN IMPORTANTE: Se ha quitado el filtro de fecha ---
-    // Ahora la consulta trae TODAS las citas del cliente.
     const { data, error } = await supabase
       .from('appointments')
       .select('id, start_time, end_time, notes, status, clients!inner(full_name, phone_number)')
       .eq('clients.phone_number', phone)
-      .order('start_time', { ascending: false }); // Se mantiene el orden de la más reciente a la más antigua
+      .order('start_time', { ascending: false });
 
     if (error) {
       toast.error('Hubo un error al buscar tus citas.');
@@ -91,8 +89,6 @@ function HistoryModal({ onClose }) {
             {!loading && appointments.length > 0 && (
               <div className="space-y-4">
                 {appointments.map(appt => {
-                  // --- LÓGICA CLAVE: Condición para mostrar el botón ---
-                  // La cita debe estar 'Pendiente' Y la fecha debe ser futura.
                   const isReschedulable = appt.status === 'Pendiente' && new Date(appt.start_time) > new Date();
 
                   return (
@@ -103,7 +99,6 @@ function HistoryModal({ onClose }) {
                       </div>
                       <p className="text-text-dark dark:text-text-light mt-1">{appt.notes}</p>
                       
-                      {/* El botón solo se muestra si la condición es verdadera */}
                       {isReschedulable && (
                         <div className="text-right mt-3">
                           <button onClick={() => handleOpenReschedule(appt)} className="text-blue-500 dark:text-blue-400 font-semibold hover:underline">
