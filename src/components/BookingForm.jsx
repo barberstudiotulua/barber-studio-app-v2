@@ -30,6 +30,10 @@ function BookingForm({ selectedServices, totalPrice, totalDuration, numberOfPeop
       return;
     }
     setLoading(true);
+
+    // Creamos una variable para guardar el ID del cliente
+    let bookingClientId = null;
+
     const bookingPromise = new Promise(async (resolve, reject) => {
       try {
         let { data: client } = await supabase.from('clients').select('id').eq('phone_number', phoneNumber).single();
@@ -39,6 +43,9 @@ function BookingForm({ selectedServices, totalPrice, totalDuration, numberOfPeop
           client = newClient;
         }
 
+        // Guardamos el ID del cliente aquí
+        bookingClientId = client.id;
+
         const startTime = new Date(timeSlot);
         const endTime = new Date(startTime.getTime() + totalDuration * 60000);
         
@@ -47,15 +54,13 @@ function BookingForm({ selectedServices, totalPrice, totalDuration, numberOfPeop
         
         const { error } = await supabase.from('appointments').insert({
             client_id: client.id,
-            service_id: selectedServices.length === 1 ? selectedServices[0].id : null,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             notes: notes,
             status: 'Pendiente' // Aseguramos que el estado por defecto se guarde
         });
         if (error) throw error;
-        // La función onBookingSuccess ahora no necesita pasar el ID del cliente
-        resolve(); 
+        resolve();
       } catch (error) {
         console.error('Booking Error:', error);
         reject(error);
@@ -67,7 +72,9 @@ function BookingForm({ selectedServices, totalPrice, totalDuration, numberOfPeop
       success: '¡Cita confirmada! Te esperamos.',
       error: 'Hubo un error al agendar. Intenta de nuevo.'
     })
-    .then(() => onBookingSuccess()) // Llamamos a onBookingSuccess sin argumentos
+    // --- ESTE ES EL ÚNICO CAMBIO IMPORTANTE ---
+    // Al tener éxito, llamamos a onBookingSuccess y le pasamos el ID del cliente
+    .then(() => onBookingSuccess(bookingClientId))
     .catch(() => setLoading(false));
   };
 
