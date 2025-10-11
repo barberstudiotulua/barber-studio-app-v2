@@ -10,8 +10,6 @@ import HistoryModal from '../components/HistoryModal';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
-// La línea de diagnóstico "console.log" ha sido eliminada.
-
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -95,7 +93,13 @@ function HomePage() {
         p256dh: subscription.toJSON().keys.p256dh,
         auth: subscription.toJSON().keys.auth,
       });
-      if (error && error.code !== '23505') throw error;
+
+      // --- ESTA ES LA ÚNICA LÍNEA AÑADIDA ---
+      // Si el error es '23505' (conflicto, ya existe), no lo tratamos como un fallo.
+      if (error && error.code !== '23505') {
+        throw error;
+      }
+      
       toast.success('¡Listo! Te recordaremos tu cita.', { id: toastId });
       setSubscriptionDone(true);
     } catch (err) {
@@ -131,9 +135,7 @@ function HomePage() {
           </div>
         ) : (
           <div className="max-w-4xl mx-auto">
-            <button onClick={() => setIsHistoryModalOpen(true)} className="block text-center mx-auto mb-10 text-brand-gold font-semibold hover:underline">
-              ¿Ya tienes una cita? Consulta aquí
-            </button>
+            {/* El enlace de texto ha sido eliminado */}
             <div className="w-full flex justify-center mb-10">
               <ol className="flex items-center space-x-2 md:space-x-4 text-sm font-medium text-center">
                 <li className={`flex items-center transition-colors ${selectedServices.length > 0 ? 'text-brand-gold' : 'text-text-soft dark:text-text-medium'}`}><span className={`flex items-center justify-center w-6 h-6 me-2 text-xs border rounded-full shrink-0 transition-colors ${selectedServices.length > 0 ? 'border-brand-gold' : 'border-gray-500'}`}>1</span>Servicios</li>
