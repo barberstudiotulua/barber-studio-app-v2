@@ -1,24 +1,120 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    
-    <!-- CAMBIO AQUÍ: Ahora apunta a tu nuevo logo para la pestaña -->
-    <link rel="icon" type="image/png" href="/pwa-192x192.png" />
-    
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#D4AF37" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gracias por ser parte de Night And Day</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a; /* Negro profundo */
+            color: #ffffff;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.8;
+        }
 
-    <meta name="viewport" content="width=device-width, initial-scale-1.0" />
-    <title>Barber Studio - Night & Day</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+        .container {
+            max-width: 700px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid #333; /* Un borde sutil */
+            background-color: rgba(255, 255, 255, 0.02);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: fadeIn 2.5s ease-in-out;
+            margin: 20px;
+        }
 
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #d4af37; /* Color dorado suave para el título */
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+        }
+
+        .message {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: #e0e0e0;
+            text-align: justify;
+        }
+
+        .highlight {
+            color: #ffffff;
+            font-weight: 400;
+        }
+
+        .farewell {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-top: 40px;
+            font-style: italic;
+            color: #d4af37;
+        }
+
+        .signature {
+            margin-top: 50px;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+
+        .signature p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+        }
+
+        .name {
+            font-weight: 700;
+            color: #fff !important;
+            font-size: 1.2rem !important;
+        }
+
+        /* Animación de entrada */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .container { padding: 25px; }
+            .message { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>El cierre de un gran ciclo: Gracias por ser parte de Night And Day</h1>
+        
+        <div class="message">
+            <p>A todos nuestros clientes y amigos:</p>
+            
+            <p>Hoy comparto con ustedes una noticia muy importante. He tomado la determinación de cerrar definitivamente las puertas de <span class="highlight">Night And Day</span>.</p>
+            
+            <p>Tomar la decisión de cerrar un negocio es un paso sumamente difícil y valiente, que conlleva una carga emocional y logística muy profunda. Sin embargo, entiendo hoy que cerrar no es fracasar, sino concluir una etapa que ha cumplido su propósito en mi vida. Me voy con el corazón lleno de lecciones y con la satisfacción absoluta del deber cumplido.</p>
+            
+            <p>Ha sido una decisión difícil pero tomada con total convicción. Gracias por permitirme ser parte de su imagen, por las conversaciones compartidas en el sillón y por la confianza que depositaron en mis manos durante todo este tiempo. Me despido no con tristeza, sino con el orgullo inmenso de haber compartido con clientes tan increíbles como ustedes.</p>
+            
+            <p>Esta página quedará activa solo como un recordatorio de los buenos momentos y como un testimonio del camino recorrido juntos. Gracias por haber sido parte de este sueño llamado <strong>Night And Day</strong>.</p>
+        </div>
+
+        <div class="farewell">¡Hasta siempre!</div>
+
+        <div class="signature">
+            <p>Con gratitud y respeto,</p>
+            <p class="name">Julian Mauricio Leon V.</p>
+        </div>
+    </div>
+
+</body>
 </html>
